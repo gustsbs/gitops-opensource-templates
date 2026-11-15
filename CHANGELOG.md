@@ -10,4 +10,5 @@ versões seguem [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 - Manifestos GitOps do GLPI (teste, homologação, produção) com promoção de imagens sem rebuild (`infra/gitops-glpi`).
 - Manifestos GitOps do WordPress: base comum, overlay por site, multisite e temas somente leitura (`infra/gitops-wordpress`).
 - AppProjects, Applications, ApplicationSet e Image Updater do Argo CD (`infra/argocd`).
-- Validação automática: kustomize + kubeconform, verificação de anonimização e shellcheck.
+- Validação automática: kustomize + kubeconform e shellcheck.
+- `ferramentas/personalizar.sh`: troca os valores de exemplo (domínios dos Ingress, registry, Git, NFS, SMTP) pelos da instituição.

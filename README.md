@@ -60,12 +60,21 @@ infra/                        equipe que opera a plataforma
 ├── gitops-glpi/              base + overlays teste/homologa/producao, CI de promoção, selagem
 ├── gitops-wordpress/         base comum + overlay por site, component de temas, gerador de sites
 └── argocd/                   AppProjects, Applications, ApplicationSet, Image Updater
-ferramentas/                  validação dos manifestos e da anonimização
+ferramentas/                  personalização dos valores de exemplo e validação dos manifestos
 ```
 
 ## Como adaptar
 
-Substitua os valores de exemplo pelos da sua instituição:
+O script `ferramentas/personalizar.sh` troca os valores de exemplo pelos da
+sua instituição em todos os arquivos de `dev/` e `infra/`:
+
+```bash
+cp ferramentas/personalizar.env.exemplo personalizar.env   # preencha os valores
+ferramentas/personalizar.sh personalizar.env               # mostra as mudanças (diff)
+ferramentas/personalizar.sh personalizar.env --aplicar     # grava
+```
+
+Valores de exemplo substituídos:
 
 | Valor de exemplo | Significado |
 |---|---|
@@ -86,11 +95,10 @@ compartilhado (os exemplos usam NFS estático).
 
 ```bash
 ferramentas/validar-manifestos.sh       # kustomize build + kubeconform em todos os overlays
-ANON_PATTERNS='termo1|termo2' ferramentas/verificar-anonimizacao.sh
 ```
 
-O workflow `.github/workflows/validar.yml` executa as mesmas verificações a
-cada push e pull request.
+O workflow `.github/workflows/validar.yml` executa essa verificação e o
+shellcheck a cada push e pull request.
 
 ## Como citar
 

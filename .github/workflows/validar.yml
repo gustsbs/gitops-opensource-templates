@@ -25,12 +25,6 @@ jobs:
       - name: Renderizar e validar os manifestos
         run: bash ferramentas/validar-manifestos.sh
 
-      - name: Verificar anonimizacao
-        env:
-          # Termos da instituicao de origem, guardados como variavel do
-          # repositorio (Settings > Secrets and variables > Actions > Variables).
-          ANON_PATTERNS: ${{ vars.ANON_PATTERNS }}
-        run: bash ferramentas/verificar-anonimizacao.sh
 
       - name: Verificar scripts shell
         run: shellcheck -S warning $(git ls-files '*.sh')

@@ -4,3 +4,9 @@ glpicrypt.key
 *.pem
 *.key
 .env
+
+# Valores reais usados por ferramentas/personalizar.sh
+personalizar.env
+
+# Verificacao de anonimizacao: uso local do mantenedor, fora do repositorio publico
+ferramentas/verificar-anonimizacao.sh
