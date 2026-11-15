@@ -1,0 +1,74 @@
+# WordPress no laboratorio: o overlay site-exemplo-prod do template, sem
+# alteracoes, mais as trocas que o MicroK8s exige. Nada em infra/ e modificado.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: wp-lab
+
+resources:
+  - ../../infra/gitops-wordpress/overlays/site-exemplo-prod
+  - job-instalar.yaml
+
+configMapGenerator:
+  - name: wp-lab-instalar
+    files:
+      - instalar-wordpress.sh
+      - gerar-wp-config.php
+
+patches:
+  # PV NFS estatico -> PVC dinamico do hostpath-storage
+  - patch: |-
+      $patch: delete
+      apiVersion: v1
+      kind: PersistentVolume
+      metadata:
+        name: site-exemplo-prod-html-pv
+  - target:
+      kind: PersistentVolumeClaim
+      name: site-exemplo-html
+    patch: |-
+      - op: remove
+        path: /spec/volumeName
+      - op: replace
+        path: /spec/storageClassName
+        value: microk8s-hostpath
+      - op: replace
+        path: /spec/accessModes
+        value: [ReadWriteOnce]
+      - op: add
+        path: /metadata/annotations
+        value:
+          argocd.argoproj.io/sync-wave: "-1"
+  # Endereco do laboratorio (*.localhost resolve para a propria maquina) e
+  # IngressClass do addon ingress do MicroK8s ("public")
+  - target:
+      kind: Ingress
+      name: wordpress
+    patch: |-
+      - op: replace
+        path: /spec/ingressClassName
+        value: public
+      - op: replace
+        path: /spec/rules
+        value:
+          - host: site.lab.localhost
+            http:
+              paths:
+                - path: /
+                  pathType: Prefix
+                  backend:
+                    service:
+                      name: wordpress
+                      port:
+                        name: http
+
+images:
+  - name: registry.exemplo.edu.br/dev/wordpress/php-wordpress
+    newName: localhost:32000/wordpress/php-wordpress
+    newTag: lab
+  - name: registry.exemplo.edu.br/dev/wordpress/nginx-wordpress
+    newName: localhost:32000/wordpress/nginx-wordpress
+    newTag: lab
+  - name: registry.exemplo.edu.br/dev/wordpress/redis-wordpress
+    newName: localhost:32000/wordpress/redis-wordpress
+    newTag: lab

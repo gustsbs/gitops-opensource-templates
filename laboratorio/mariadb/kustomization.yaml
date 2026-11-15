@@ -1,0 +1,10 @@
+# Banco do laboratorio. Em producao o banco e EXTERNO ao cluster; aqui ele
+# roda no proprio MicroK8s so para simular esse servidor externo. Aplicado
+# pelo laboratorio.sh (kubectl apply -k), fora do Argo CD.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: lab-db
+
+resources:
+  - mariadb.yaml

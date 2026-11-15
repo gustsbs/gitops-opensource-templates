@@ -1,0 +1,41 @@
+# Coloca o WordPress (pacote pt_BR) e o wp-config.php no volume do site antes
+# do Deployment (sync-wave -1). Idempotente: se ja existe, so termina.
+# Em producao esse conteudo ja esta no NFS de cada site.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: wp-lab-instalar
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  backoffLimit: 2
+  template:
+    spec:
+      restartPolicy: Never
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 33
+        runAsGroup: 33
+      containers:
+        - name: instalar
+          image: registry.exemplo.edu.br/dev/wordpress/php-wordpress
+          command: ["sh", "/scripts/instalar-wordpress.sh"]
+          envFrom:
+            - secretRef:
+                name: wp-lab-db
+          volumeMounts:
+            - name: wp-html
+              mountPath: /var/www/html
+            - name: tmp
+              mountPath: /tmp
+            - name: scripts
+              mountPath: /scripts
+      volumes:
+        - name: wp-html
+          persistentVolumeClaim:
+            claimName: site-exemplo-html
+        - name: tmp
+          emptyDir: {}
+        - name: scripts
+          configMap:
+            name: wp-lab-instalar

@@ -60,6 +60,7 @@ infra/                        equipe que opera a plataforma
 ├── gitops-glpi/              base + overlays teste/homologa/producao, CI de promoção, selagem
 ├── gitops-wordpress/         base comum + overlay por site, component de temas, gerador de sites
 └── argocd/                   AppProjects, Applications, ApplicationSet, Image Updater
+laboratorio/                  reprodução local em MicroK8s (Argo CD lendo o Git)
 ferramentas/                  personalização dos valores de exemplo e validação dos manifestos
 ```
 
@@ -90,6 +91,16 @@ Valores de exemplo substituídos:
 Pré-requisitos no cluster: ingress controller (exemplos com ingress-nginx),
 Argo CD, Sealed Secrets e um provisionamento de volume persistente
 compartilhado (os exemplos usam NFS estático).
+
+## Laboratório local
+
+A pasta [`laboratorio/`](laboratorio/README.md) reproduz o modelo numa única
+máquina com MicroK8s: build das imagens, banco simulado, segredos selados e o
+Argo CD sincronizando os templates a partir do Git.
+
+```bash
+laboratorio/laboratorio.sh tudo
+```
 
 ## Validação
 

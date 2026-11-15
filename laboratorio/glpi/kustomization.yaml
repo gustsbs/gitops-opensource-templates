@@ -1,0 +1,74 @@
+# GLPI no laboratorio: o overlay de TESTE do template, sem alteracoes, mais
+# as trocas que o MicroK8s exige. Nada em infra/ e modificado.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: glpi-lab
+
+resources:
+  - ../../infra/gitops-glpi/gitops/overlays/teste
+  - pvc-files.yaml
+  - job-instalar.yaml
+
+configMapGenerator:
+  - name: glpi-lab-instalar
+    files:
+      - instalar-glpi.sh
+
+patches:
+  # Volume NFS -> PVC do hostpath-storage
+  - target:
+      kind: Deployment
+      name: glpi
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/volumes/0
+        value:
+          name: glpi-files
+          persistentVolumeClaim:
+            claimName: glpi-files
+  - target:
+      kind: CronJob
+      name: glpi-cron
+    patch: |-
+      - op: replace
+        path: /spec/jobTemplate/spec/template/spec/volumes/0
+        value:
+          name: glpi-files
+          persistentVolumeClaim:
+            claimName: glpi-files
+  # Endereco do laboratorio (*.localhost resolve para a propria maquina) e
+  # IngressClass do addon ingress do MicroK8s ("public")
+  - target:
+      kind: Ingress
+      name: glpi
+    patch: |-
+      - op: replace
+        path: /spec/rules/0/host
+        value: glpi.lab.localhost
+      - op: replace
+        path: /spec/ingressClassName
+        value: public
+  # Os SealedSecrets de exemplo saem: o laboratorio.sh sela os segredos com
+  # a chave do Sealed Secrets deste cluster e aplica fora do Git.
+  - target:
+      group: bitnami.com
+      kind: SealedSecret
+    patch: |-
+      $patch: delete
+      apiVersion: bitnami.com/v1alpha1
+      kind: SealedSecret
+      metadata:
+        name: qualquer
+
+# Imagens construidas localmente e publicadas no registry do MicroK8s
+images:
+  - name: registry.exemplo.edu.br/dev/glpi/php-glpi
+    newName: localhost:32000/glpi/php-glpi
+    newTag: lab
+  - name: registry.exemplo.edu.br/dev/glpi/nginx-glpi
+    newName: localhost:32000/glpi/nginx-glpi
+    newTag: lab
+  - name: registry.exemplo.edu.br/dev/docker-base-images/redis
+    newName: localhost:32000/docker-base-images/redis
+    newTag: lab

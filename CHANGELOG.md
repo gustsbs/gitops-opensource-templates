@@ -12,3 +12,4 @@ versões seguem [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 - AppProjects, Applications, ApplicationSet e Image Updater do Argo CD (`infra/argocd`).
 - Validação automática: kustomize + kubeconform e shellcheck.
 - `ferramentas/personalizar.sh`: troca os valores de exemplo (domínios dos Ingress, registry, Git, NFS, SMTP) pelos da instituição.
+- Laboratório local em MicroK8s (`laboratorio/`): overlays que reaproveitam os templates, MariaDB simulando o banco externo, segredos selados e Argo CD lendo o Git.

@@ -1,0 +1,54 @@
+# Instala o banco do GLPI (bin/console database:install) antes do Deployment
+# (sync-wave -1). Idempotente: se as tabelas ja existem, so termina.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: glpi-lab-instalar
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  backoffLimit: 2
+  template:
+    spec:
+      restartPolicy: Never
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 33
+        runAsGroup: 33
+      initContainers:
+        # files/ vazio no PVC: semeia a estrutura de diretorios da imagem
+        - name: semear-files
+          image: registry.exemplo.edu.br/dev/glpi/php-glpi
+          command: ["sh", "-c", "cp -Rn /var/www/html/files/. /seed/ && ls /seed"]
+          volumeMounts:
+            - name: glpi-files
+              mountPath: /seed
+      containers:
+        - name: instalar
+          image: registry.exemplo.edu.br/dev/glpi/php-glpi
+          command: ["sh", "/scripts/instalar-glpi.sh"]
+          envFrom:
+            - secretRef:
+                name: glpi-lab-db
+          volumeMounts:
+            - name: glpi-files
+              mountPath: /var/www/html/files
+            - name: config
+              mountPath: /var/www/html/config
+            - name: glpi-key
+              mountPath: /secrets
+              readOnly: true
+            - name: scripts
+              mountPath: /scripts
+      volumes:
+        - name: glpi-files
+          persistentVolumeClaim:
+            claimName: glpi-files
+        - name: config
+          emptyDir: {}
+        - name: glpi-key
+          secret:
+            secretName: glpi-key
+        - name: scripts
+          configMap:
+            name: glpi-lab-instalar

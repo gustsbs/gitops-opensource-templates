@@ -4,7 +4,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 status=0
-for k in $(find infra -name kustomization.yaml -path '*/overlays/*' | sort); do
+for k in $( (find infra -name kustomization.yaml -path '*/overlays/*'; ls laboratorio/*/kustomization.yaml 2>/dev/null) | sort); do
   dir=$(dirname "$k")
   if kustomize build "$dir" | kubeconform -strict -summary -ignore-missing-schemas \
        -output text - > /tmp/kubeconform.out 2>&1; then

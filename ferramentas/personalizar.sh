@@ -7,7 +7,7 @@
 #   ferramentas/personalizar.sh personalizar.env               # mostra o que mudaria
 #   ferramentas/personalizar.sh personalizar.env --aplicar     # grava as mudancas
 #
-# Altera apenas os arquivos de dev/ e infra/. Rode em um clone limpo (ou
+# Altera apenas os arquivos de dev/, infra/ e laboratorio/. Rode em um clone limpo (ou
 # confira com "git diff" depois): os valores de exemplo deixam de existir e
 # uma segunda execucao nao encontra mais o que trocar.
 set -euo pipefail
@@ -76,9 +76,9 @@ if [ -z "$SCRIPT_SED" ]; then
   exit 0
 fi
 
-mapfile -t ARQUIVOS < <(grep -rlI -F -e exemplo.edu.br -e 192.0.2.10 -e /exports/ -e 10.244.0.0/16 -e @infra dev infra 2>/dev/null | sort)
+mapfile -t ARQUIVOS < <(grep -rlI -F -e exemplo.edu.br -e 192.0.2.10 -e /exports/ -e 10.244.0.0/16 -e @infra dev infra laboratorio 2>/dev/null | sort)
 if [ ${#ARQUIVOS[@]} -eq 0 ]; then
-  echo "Nenhum valor de exemplo encontrado em dev/ e infra/ (ja personalizado?)."
+  echo "Nenhum valor de exemplo encontrado em dev/, infra/ e laboratorio/ (ja personalizado?)."
   exit 0
 fi
 
