@@ -1,0 +1,105 @@
+// Build das imagens php-glpi e nginx-glpi (Kaniko, sem Docker no agente) e
+// atualizacao do overlay de TESTE no repositorio infra/gitops-glpi.
+// Homologacao e producao sao promovidas pelos Jenkinsfiles do gitops-glpi,
+// sem rebuild (mesmo digest).
+pipeline {
+    agent {
+        kubernetes {
+            yaml '''
+apiVersion: v1
+kind: Pod
+spec:
+  containers:
+  - name: kaniko
+    image: gcr.io/kaniko-project/executor:debug
+    command: ["sleep"]
+    args: ["infinity"]
+    volumeMounts:
+    - name: registry-secret
+      mountPath: /kaniko/.docker
+  - name: git-kustomize
+    image: alpine/k8s:1.30.0
+    command: ["sleep"]
+    args: ["infinity"]
+  volumes:
+  - name: registry-secret
+    projected:
+      sources:
+      - secret:
+          name: regcred
+          items:
+          - key: .dockerconfigjson
+            path: config.json
+'''
+        }
+    }
+
+    options {
+        disableConcurrentBuilds()
+        buildDiscarder(logRotator(numToKeepStr: '30'))
+    }
+
+    environment {
+        REGISTRY         = 'registry.exemplo.edu.br'
+        IMAGE_PHP        = 'dev/glpi/php-glpi'
+        IMAGE_NGINX      = 'dev/glpi/nginx-glpi'
+        APP_VERSION      = '11.0.11-v1.0'
+        IMAGE_TAG        = "${APP_VERSION}-build-${BUILD_NUMBER}"
+        GITOPS_REPO      = 'git.exemplo.edu.br/infra/gitops-glpi.git'
+        GITOPS_BRANCH    = 'main'
+    }
+
+    stages {
+        stage('1. Build e push: php-glpi') {
+            steps {
+                container('kaniko') {
+                    sh """
+                        /kaniko/executor \
+                          --context=dir://. \
+                          --dockerfile=docker/php/Dockerfile \
+                          --label org.opencontainers.image.revision=${GIT_COMMIT} \
+                          --destination=${REGISTRY}/${IMAGE_PHP}:${IMAGE_TAG}
+                    """
+                }
+            }
+        }
+
+        stage('2. Build e push: nginx-glpi') {
+            steps {
+                container('kaniko') {
+                    sh """
+                        /kaniko/executor \
+                          --context=dir://docker/nginx \
+                          --dockerfile=docker/nginx/Dockerfile \
+                          --label org.opencontainers.image.revision=${GIT_COMMIT} \
+                          --destination=${REGISTRY}/${IMAGE_NGINX}:${IMAGE_TAG}
+                    """
+                }
+            }
+        }
+
+        stage('3. Atualizar o overlay de teste') {
+            steps {
+                container('git-kustomize') {
+                    withCredentials([usernamePassword(credentialsId: 'gitops-glpi-token', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_PASS')]) {
+                        sh '''
+                            set -e
+                            git config --global user.name "CI"
+                            git config --global user.email "ci@exemplo.edu.br"
+                            rm -rf repo-gitops
+                            git clone "https://${GIT_USER}:${GIT_PASS}@${GITOPS_REPO}" repo-gitops
+                            cd repo-gitops
+                            sh ci/trocar-tag.sh gitops/overlays/teste \
+                              "${REGISTRY}/${IMAGE_PHP}:${IMAGE_TAG}" \
+                              "${REGISTRY}/${IMAGE_NGINX}:${IMAGE_TAG}"
+                            kustomize build gitops/overlays/teste > /dev/null
+                            git add gitops/overlays/teste/kustomization.yaml
+                            git commit -m "chore(ci): php-glpi e nginx-glpi ${IMAGE_TAG} no teste" || echo "Sem alteracoes"
+                            git push "https://${GIT_USER}:${GIT_PASS}@${GITOPS_REPO}" HEAD:${GITOPS_BRANCH}
+                        '''
+                    }
+                }
+            }
+        }
+    }
+}

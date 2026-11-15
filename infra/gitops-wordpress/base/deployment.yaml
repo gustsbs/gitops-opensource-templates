@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wordpress
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: wordpress
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: wordpress
+    spec:
+      imagePullSecrets:
+        - name: wordpress-regcred
+      containers:
+        - name: nginx
+          image: registry.exemplo.edu.br/dev/wordpress/nginx-wordpress
+          ports:
+            # Porta nomeada: o Service aponta para "http".
+            - name: http
+              containerPort: 8080
+          volumeMounts:
+            - name: wp-html
+              mountPath: /var/www/html
+            - name: tmp-nginx
+              mountPath: /tmp
+          resources:
+            requests: { cpu: 10m, memory: 64Mi }
+            limits: { cpu: 250m, memory: 128Mi }
+          # /healthz responde so o nginx; /fpm-ping passa pelo php-fpm.
+          livenessProbe:
+            httpGet: { path: /healthz, port: http }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            httpGet: { path: /fpm-ping, port: http }
+            initialDelaySeconds: 2
+            periodSeconds: 5
+        - name: wordpress-fpm
+          image: registry.exemplo.edu.br/dev/wordpress/php-wordpress
+          securityContext:
+            # Dono dos arquivos no volume do site: precisa bater, senao o
+            # wp-admin nao consegue atualizar core/plugins/temas.
+            runAsUser: 33
+            runAsGroup: 33
+          volumeMounts:
+            - name: wp-html
+              mountPath: /var/www/html
+            - name: tmp-php
+              mountPath: /tmp
+          resources:
+            # Pool da php-wordpress: ate 10 processos.
+            requests: { cpu: 25m, memory: 256Mi }
+            limits: { cpu: "1", memory: 1Gi }
+          readinessProbe:
+            tcpSocket: { port: 9000 }
+            initialDelaySeconds: 2
+            periodSeconds: 5
+      volumes:
+        - name: wp-html
+          persistentVolumeClaim:
+            claimName: wp-html
+        - name: tmp-nginx
+          emptyDir: {}
+        - name: tmp-php
+          emptyDir: {}

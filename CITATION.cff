@@ -1,0 +1,25 @@
+cff-version: 1.2.0
+message: "Se usar estes templates, cite-os conforme os metadados abaixo."
+title: "GitOps Open Source Templates: arquitetura modular de Infraestrutura como Código para GLPI e WordPress"
+type: software
+authors:
+  - given-names: Gustavo
+    family-names: Starepravo de Brito dos Santos
+    affiliation: "Universidade Tecnológica Federal do Paraná (PPGCA/UTFPR)"
+license: Apache-2.0
+repository-code: "https://github.com/gustsbs/gitops-opensource-templates"
+url: "https://gustsbs.github.io"
+abstract: >-
+  Templates de uma arquitetura modular de Infraestrutura como Código para
+  operar sistemas de código aberto (GLPI e WordPress) via GitOps em
+  Kubernetes on-premises: imagens imutáveis, Kustomize base/overlays,
+  Argo CD e Sealed Secrets. Produção técnica do Mestrado em Computação
+  Aplicada (PPGCA/UTFPR).
+keywords:
+  - gitops
+  - infrastructure-as-code
+  - kubernetes
+  - argocd
+  - kustomize
+  - glpi
+  - wordpress

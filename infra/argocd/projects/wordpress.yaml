@@ -1,0 +1,19 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: wordpress
+  namespace: argocd
+spec:
+  description: Sites WordPress - um namespace por site (<slug>-prod)
+  sourceRepos:
+    - https://git.exemplo.edu.br/infra/gitops-wordpress.git
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: '*-prod'
+  # PersistentVolume e Namespace sao de escopo de cluster (volume NFS
+  # estatico por site e CreateNamespace=true).
+  clusterResourceWhitelist:
+    - group: ""
+      kind: PersistentVolume
+    - group: ""
+      kind: Namespace

@@ -1,0 +1,103 @@
+// Promove para a producao exatamente as imagens que estao no overlay de
+// homologacao (main). Sem parametros de imagem: so sobe o que a homologacao ja
+// usa. Abre um MR em overlays/producao, que exige aprovacao da equipe infra
+// (CODEOWNERS); o Sync de producao no ArgoCD continua manual.
+pipeline {
+    agent {
+        kubernetes {
+            yaml '''
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app: jenkins-glpi-promocao
+spec:
+  containers:
+  - name: skopeo
+    image: quay.io/skopeo/stable:v1.16.1
+    command: ["sleep"]
+    args: ["infinity"]
+    env:
+    - name: REGISTRY_AUTH_FILE
+      value: /docker/config.json
+    volumeMounts:
+    - name: registry-secret
+      mountPath: /docker
+      readOnly: true
+  - name: git-kustomize
+    image: alpine/k8s:1.30.0
+    command: ["sleep"]
+    args: ["infinity"]
+  volumes:
+  - name: registry-secret
+    projected:
+      sources:
+      - secret:
+          name: regcred
+          items:
+          - key: .dockerconfigjson
+            path: config.json
+'''
+        }
+    }
+
+    options {
+        disableConcurrentBuilds()
+        buildDiscarder(logRotator(numToKeepStr: '30'))
+    }
+
+    environment {
+        REGISTRY    = 'registry.exemplo.edu.br/dev/glpi'
+        GITOPS_REPO = 'git.exemplo.edu.br/infra/gitops-glpi.git'
+        ORIGEM      = 'gitops/overlays/homologa'
+        DESTINO     = 'gitops/overlays/producao'
+    }
+
+    stages {
+        stage('1. Ler as versoes da homologacao') {
+            steps {
+                container('git-kustomize') {
+                    script {
+                        env.PHP_VERSAO   = sh(returnStdout: true, script: 'sh ci/tag-do-overlay.sh "$ORIGEM" "$REGISTRY/php-glpi"').trim()
+                        env.NGINX_VERSAO = sh(returnStdout: true, script: 'sh ci/tag-do-overlay.sh "$ORIGEM" "$REGISTRY/nginx-glpi"').trim()
+                        def php_prod   = sh(returnStdout: true, script: 'sh ci/tag-do-overlay.sh "$DESTINO" "$REGISTRY/php-glpi"').trim()
+                        def nginx_prod = sh(returnStdout: true, script: 'sh ci/tag-do-overlay.sh "$DESTINO" "$REGISTRY/nginx-glpi"').trim()
+                        echo "Homologacao: php-glpi:${env.PHP_VERSAO}  nginx-glpi:${env.NGINX_VERSAO}"
+                        echo "Producao:    php-glpi:${php_prod}  nginx-glpi:${nginx_prod}"
+                        def versao = /^[0-9]+\.[0-9]+\.[0-9]+-v[0-9]+\.[0-9]+$/
+                        [env.PHP_VERSAO, env.NGINX_VERSAO].each { t ->
+                            if (!(t ==~ versao)) {
+                                error("A homologacao usa '${t}', que nao e uma tag de versao (<versao>-v<X.Y>): candidatas -build-N e tags antigas por ambiente (-hml, -prod) nao vao para producao. Promova antes com o glpi-promover-homologa.")
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('2. Conferir as imagens no registry') {
+            steps {
+                container('skopeo') {
+                    sh 'sh ci/publicar-versao.sh "$REGISTRY/php-glpi" "$PHP_VERSAO" "$PHP_VERSAO"'
+                    sh 'sh ci/publicar-versao.sh "$REGISTRY/nginx-glpi" "$NGINX_VERSAO" "$NGINX_VERSAO"'
+                }
+            }
+        }
+
+        stage('3. Abrir MR na producao') {
+            steps {
+                container('git-kustomize') {
+                    withCredentials([usernamePassword(credentialsId: 'gitops-glpi-token', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_PASS')]) {
+                        script {
+                            def desc = "Mesmas imagens da homologacao: php-glpi ${env.PHP_VERSAO} (digest ${readFile('.promocao/php-glpi.digest')}; commit ${readFile('.promocao/php-glpi.revisao')}); nginx-glpi ${env.NGINX_VERSAO} (digest ${readFile('.promocao/nginx-glpi.digest')}). Exige aprovacao da equipe infra (CODEOWNERS) e Sync manual no ArgoCD."
+                            withEnv(["DESCRICAO=${desc}"]) {
+                                sh "sh ci/abrir-mr.sh \"${env.DESTINO}\" producao '${env.REGISTRY}/php-glpi:${env.PHP_VERSAO}' '${env.REGISTRY}/nginx-glpi:${env.NGINX_VERSAO}'"
+                            }
+                            currentBuild.description = "php-glpi:${env.PHP_VERSAO} nginx-glpi:${env.NGINX_VERSAO}"
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

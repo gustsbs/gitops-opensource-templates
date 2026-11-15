@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wordpress
+spec:
+  template:
+    spec:
+      imagePullSecrets:
+        - name: temas-regcred
+      initContainers:
+        - name: temas
+          image: registry.exemplo.edu.br/temas/wp-temas
+          command:
+            - sh
+            - -c
+            - |
+              set -e
+              cp -R /themes/. /tema/
+              cd /tema && sha256sum -c -s /themes.sha256
+              echo "temas copiados e conferidos"
+          # Usuario sem privilegio, raiz somente leitura: so escreve no
+          # emptyDir; os arquivos ficam legiveis para o nginx (101) e o php (33).
+          securityContext:
+            runAsUser: 65534
+            runAsGroup: 65534
+            runAsNonRoot: true
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+          volumeMounts:
+            - name: tema
+              mountPath: /tema
+          resources:
+            requests: { cpu: 10m, memory: 16Mi }
+            limits: { cpu: 200m, memory: 64Mi }
+      volumes:
+        - name: tema
+          emptyDir:
+            sizeLimit: 256Mi

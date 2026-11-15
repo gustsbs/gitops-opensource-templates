@@ -1,0 +1,18 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: glpi-hml
+  namespace: argocd
+spec:
+  project: glpi
+  source:
+    repoURL: https://git.exemplo.edu.br/infra/gitops-glpi.git
+    targetRevision: main
+    path: gitops/overlays/homologa
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: glpi-hml
+  syncPolicy:
+    # homologa: Sync manual, depois do merge do MR de promocao.
+    syncOptions:
+      - CreateNamespace=true

@@ -1,0 +1,21 @@
+# Arquivos com dono 33:33 e ACL de leitura para o nginx (uid 101).
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: site-exemplo-prod-html-pv
+  labels:
+    app.kubernetes.io/name: wordpress
+    app.kubernetes.io/part-of: wordpress
+spec:
+  capacity:
+    storage: 20Gi
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  nfs:
+    server: 192.0.2.10
+    path: /exports/wordpress/site-exemplo
+  claimRef:
+    namespace: site-exemplo-prod
+    name: site-exemplo-html

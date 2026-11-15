@@ -1,0 +1,18 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: glpi
+  namespace: argocd
+spec:
+  description: GLPI - teste, homologacao e producao
+  sourceRepos:
+    - https://git.exemplo.edu.br/infra/gitops-glpi.git
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: glpi-teste
+    - server: https://kubernetes.default.svc
+      namespace: glpi-hml
+    - server: https://kubernetes.default.svc
+      namespace: glpi-prod
+  # Sem recursos de cluster: o GLPI so usa recursos do proprio namespace.
+  clusterResourceWhitelist: []

@@ -1,0 +1,31 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# portal.exemplo.edu.br - WordPress multisite em subdiretorios, com temas
+# institucionais somente leitura vindos de uma imagem (component).
+# Codigo, wp-config.php e uploads no volume do site, atualizados pelo wp-admin.
+namespace: portal-multisite-prod
+
+resources:
+  - ../../base
+  - pv-html.yaml
+  - pvc-html.yaml
+  - ingress.yaml
+
+components:
+  - ../../components/tema-somente-leitura
+
+patches:
+  - path: patch-deployment.yaml
+  - path: patch-nginx-multisite.yaml
+  - path: patch-tema.yaml
+
+configMapGenerator:
+  - name: nginx-multisite
+    files:
+      - multisite.conf=nginx-multisite.conf
+
+images:
+  # Pode ser atualizado pelo Argo CD Image Updater (argocd/image-updater/).
+  - name: registry.exemplo.edu.br/temas/wp-temas
+    newTag: portal-0000000

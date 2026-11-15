@@ -1,0 +1,15 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+ 
+# site-exemplo.exemplo.edu.br - codigo, wp-config.php e uploads no NFS do site, atualizados pelo
+# wp-admin; imagens e tags vem da base.
+namespace: site-exemplo-prod
+ 
+resources:
+  - ../../base
+  - pv-html.yaml
+  - pvc-html.yaml
+  - ingress.yaml
+ 
+patches:
+  - path: patch-deployment.yaml

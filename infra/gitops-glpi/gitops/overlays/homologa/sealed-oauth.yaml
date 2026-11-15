@@ -1,0 +1,17 @@
+# EXEMPLO: substitua pelo resultado de scripts/seal-secrets.sh homologa.
+# Um SealedSecret so abre no cluster (e namespace) para o qual foi selado.
+apiVersion: bitnami.com/v1alpha1
+kind: SealedSecret
+metadata:
+  name: glpi-oauth
+  namespace: glpi-hml
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  encryptedData:
+    oauth.pem: AgB-SUBSTITUIR-PELO-RESULTADO-DO-KUBESEAL
+    oauth.pub: AgB-SUBSTITUIR-PELO-RESULTADO-DO-KUBESEAL
+  template:
+    metadata:
+      name: glpi-oauth
+      namespace: glpi-hml

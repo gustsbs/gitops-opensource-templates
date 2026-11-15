@@ -1,0 +1,38 @@
+# Uma Application por site, gerada a partir das pastas overlays/*-prod do
+# gitops-wordpress. Novo site = novo overlay (scripts/novo-site-overlay.sh) +
+# commit; o Argo CD cria a Application sozinho. Remover o overlay remove a
+# Application (preserveResourcesOnDeletion evita apagar o site junto).
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: wordpress
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  syncPolicy:
+    preserveResourcesOnDeletion: true
+  generators:
+    - git:
+        repoURL: https://git.exemplo.edu.br/infra/gitops-wordpress.git
+        revision: main
+        directories:
+          - path: overlays/*-prod
+  template:
+    metadata:
+      name: 'wordpress-{{ .path.basename }}'
+      annotations:
+        # Reavalia so quando muda o overlay do site ou a base comum.
+        argocd.argoproj.io/manifest-generate-paths: .;../../base;../../components
+    spec:
+      project: wordpress
+      source:
+        repoURL: https://git.exemplo.edu.br/infra/gitops-wordpress.git
+        targetRevision: main
+        path: '{{ .path.path }}'
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: '{{ .path.basename }}'
+      syncPolicy:
+        syncOptions:
+          - CreateNamespace=true

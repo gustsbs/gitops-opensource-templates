@@ -1,0 +1,14 @@
+<?php
+// Modelo do config/config_db.php do GLPI. Copie para
+// gitops/overlays/<ambiente>/config_db.php, preencha e sele com
+// scripts/seal-config-secrets.sh <ambiente>. Nunca commite o arquivo preenchido.
+class DB extends DBmysql {
+   public $dbhost     = 'mysql.exemplo.edu.br';
+   public $dbuser     = 'glpi';
+   public $dbpassword = 'SENHA';
+   public $dbdefault  = 'glpi';
+   public $use_utf8mb4 = true;
+   public $allow_myisam = false;
+   public $allow_datetime = false;
+   public $allow_signed_keys = false;
+}

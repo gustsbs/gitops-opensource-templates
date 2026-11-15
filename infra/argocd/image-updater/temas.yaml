@@ -1,0 +1,39 @@
+# Argo CD Image Updater (v1.x, CRD): atualiza a imagem de temas dos sites que
+# usam o component tema-somente-leitura.
+#
+# A equipe de temas publica tags <site>-<commit>, ja validadas no CI dela. O
+# Image Updater escolhe a tag mais recente do prefixo de cada site e grava o
+# newTag na main do gitops-wordpress. As Applications seguem com sync manual:
+# o initContainer confere o themes.sha256 antes de o pod subir.
+#
+# Credenciais (nao versionadas):
+# - escrita no Git: Secret argocd/image-updater-git-wordpress (token com
+#   permissao de escrita no gitops-wordpress);
+# - leitura do registry: Secret argocd/image-updater-temas (docker-registry).
+apiVersion: argocd-image-updater.argoproj.io/v1alpha1
+kind: ImageUpdater
+metadata:
+  name: temas
+  namespace: argocd
+spec:
+  writeBackConfig:
+    method: "git:secret:argocd/image-updater-git-wordpress"
+    gitConfig:
+      repository: "https://git.exemplo.edu.br/infra/gitops-wordpress.git"
+      branch: "main"
+      writeBackTarget: "kustomization"
+  commonUpdateSettings:
+    updateStrategy: "newest-build"
+  applicationRefs:
+    - namePattern: "wordpress-portal-multisite-prod"
+      images:
+        - alias: "tema"
+          imageName: "registry.exemplo.edu.br/temas/wp-temas"
+          commonUpdateSettings:
+            allowTags: "regexp:^portal-[0-9a-f]{7,8}$"
+            # Tags <site>-<commit> nao sao semver: estrategia explicita.
+            updateStrategy: "newest-build"
+            pullSecret: "pullsecret:argocd/image-updater-temas"
+          manifestTargets:
+            kustomize:
+              name: "registry.exemplo.edu.br/temas/wp-temas"

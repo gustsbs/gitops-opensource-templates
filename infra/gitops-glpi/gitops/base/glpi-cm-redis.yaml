@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: glpi-cache
+data:
+  local_define.php: |-
+    <?php
+    define('GLPI_CACHE_TYPE', 'redis');
+    define('GLPI_CACHE_REDIS_HOST', 'glpi-redis');
+    define('GLPI_CACHE_REDIS_PORT', 6379);
+    define('GLPI_SESSION_HANDLER', 'redis');
+    define('GLPI_SESSION_REDIS_HOST', 'glpi-redis');
+    define('GLPI_SESSION_REDIS_PORT', 6379);
+    // Codigo imutavel: plugins entram pela imagem, nao pela loja do GLPI
+    define('GLPI_MARKETPLACE_ENABLE', 0);

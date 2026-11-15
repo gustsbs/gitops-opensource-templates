@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: glpi-nginx-realip
+data:
+  # Lido pelo nginx-glpi (include /etc/nginx/glpi.d/realip*.conf).
+  # set_real_ip_from: CIDR de pods onde roda o ingress controller (ajuste).
+  # real_ip_recursive off: usa o ULTIMO endereco do cabecalho, o que o
+  # balanceador acrescentou; um valor forjado pelo cliente fica a esquerda.
+  realip.conf: |
+    set_real_ip_from 10.244.0.0/16;
+    real_ip_header X-Original-Forwarded-For;
+    real_ip_recursive off;

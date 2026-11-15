@@ -1,0 +1,52 @@
+# Cache e sessoes do GLPI. Sem senha: o isolamento e a NetworkPolicy abaixo.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: glpi-redis
+spec:
+  selector:
+    matchLabels:
+      app: glpi-redis
+  template:
+    metadata:
+      labels:
+        app: glpi-redis
+    spec:
+      containers:
+        - name: redis
+          image: registry.exemplo.edu.br/dev/docker-base-images/redis
+          command: ["redis-server", "/opt/redis-confs/redis_cache.conf"]
+          ports:
+            - containerPort: 6379
+          resources:
+            requests: {cpu: 100m, memory: 128Mi}
+            limits: {cpu: 250m, memory: 512Mi}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: glpi-redis
+spec:
+  selector:
+    app: glpi-redis
+  ports:
+    - port: 6379
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: glpi-redis
+spec:
+  podSelector:
+    matchLabels:
+      app: glpi-redis
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: glpi
+      ports:
+        - protocol: TCP
+          port: 6379

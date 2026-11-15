@@ -1,0 +1,21 @@
+# Regras de multisite em /etc/nginx/wordpress.d/ (subPath: mantem o
+# realip.conf da imagem). O configMapGenerator gera sufixo de hash: mudar o
+# .conf provoca rollout.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wordpress
+spec:
+  template:
+    spec:
+      containers:
+        - name: nginx
+          volumeMounts:
+            - name: nginx-multisite
+              mountPath: /etc/nginx/wordpress.d/multisite.conf
+              subPath: multisite.conf
+              readOnly: true
+      volumes:
+        - name: nginx-multisite
+          configMap:
+            name: nginx-multisite

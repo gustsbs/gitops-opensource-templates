@@ -1,0 +1,30 @@
+# Uma montagem por pasta listada em /themes.list da imagem de temas:
+#   docker run --rm --entrypoint cat registry.exemplo.edu.br/temas/wp-temas:<tag> /themes.list
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wordpress
+spec:
+  template:
+    spec:
+      containers:
+        - name: nginx
+          volumeMounts:
+            - name: tema
+              mountPath: /var/www/html/wp-content/themes/tema_institucional
+              subPath: tema_institucional
+              readOnly: true
+            - name: tema
+              mountPath: /var/www/html/wp-content/themes/tema_institucional_filho
+              subPath: tema_institucional_filho
+              readOnly: true
+        - name: wordpress-fpm
+          volumeMounts:
+            - name: tema
+              mountPath: /var/www/html/wp-content/themes/tema_institucional
+              subPath: tema_institucional
+              readOnly: true
+            - name: tema
+              mountPath: /var/www/html/wp-content/themes/tema_institucional_filho
+              subPath: tema_institucional_filho
+              readOnly: true

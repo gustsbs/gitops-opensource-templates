@@ -1,0 +1,24 @@
+# Temas institucionais distribuidos SOMENTE LEITURA a partir de uma imagem.
+#
+# A imagem de temas e construida e validada pelo CI da equipe de temas; aqui
+# so consumimos. Um initContainer copia /themes da imagem para um emptyDir,
+# confere o themes.sha256 e o overlay monta cada pasta de tema (subPath) como
+# readOnly em wp-content/themes/, no nginx e no php-fpm. O resto do site
+# (plugins, uploads, wp-config.php) continua no volume do site.
+#
+# Uso no overlay:
+#   components:
+#     - ../../components/tema-somente-leitura
+#   images:
+#     - name: registry.exemplo.edu.br/temas/wp-temas
+#       newTag: "<prefixo>-<commit>"
+#   patches:
+#     - path: patch-tema.yaml     # volumeMounts das pastas de tema
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+
+patches:
+  - path: patch-tema.yaml
+    target:
+      kind: Deployment
+      name: wordpress

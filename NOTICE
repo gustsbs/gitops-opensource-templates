@@ -1,0 +1,18 @@
+GitOps Open Source Templates
+Copyright 2026 Gustavo Starepravo de Brito dos Santos
+
+Este produto é a produção técnica da dissertação de mestrado
+"Arquitetura Modular para Infraestrutura como Código: proposta e validação
+de um modelo de operação para sistemas de código aberto via GitOps",
+Programa de Pós-Graduação em Computação Aplicada (PPGCA) da Universidade
+Tecnológica Federal do Paraná (UTFPR).
+Orientador: Prof. Dr. Daniel Fernando Pigatto.
+Coorientadora: Profa. Dra. Juliana de Santi.
+
+Os templates derivam de um modelo validado em produção em uma universidade
+pública brasileira; dados institucionais foram substituídos por valores de
+exemplo.
+
+Este produto referencia, sem redistribuir, imagens e software de terceiros
+(GLPI, WordPress, PHP, nginx, Redis, Argo CD, Kustomize, Sealed Secrets),
+cada um sob a sua própria licença.

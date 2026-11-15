@@ -1,0 +1,57 @@
+# Cron do GLPI (front/cron.php) na mesma imagem php-glpi do Deployment.
+# O volume glpi-files (indice 0) e o NFS do ambiente: o overlay troca o path.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: glpi-cron
+spec:
+  schedule: '*/3 * * * *'
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      template:
+        spec:
+          restartPolicy: OnFailure
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 33
+            runAsGroup: 33
+            fsGroup: 33
+          containers:
+            - name: cron
+              image: registry.exemplo.edu.br/dev/glpi/php-glpi
+              command: ["/bin/sh", "-c", "/usr/local/bin/php /var/www/html/front/cron.php"]
+              env:
+                - name: PHP_INI_SCAN_DIR
+                  value: :/usr/local/etc/php/conf.custom
+              resources:
+                requests: {cpu: 100m, memory: 256Mi}
+                limits: {cpu: "1", memory: 1Gi}
+              volumeMounts:
+                - name: glpi-files
+                  mountPath: /var/www/html/files
+                - name: glpi-config
+                  mountPath: /var/www/html/config/config_db.php
+                  subPath: config_db.php
+                - name: glpi-key
+                  mountPath: /var/www/html/config/glpicrypt.key
+                  subPath: glpicrypt.key
+                - name: php-config
+                  mountPath: /usr/local/etc/php/conf.custom
+          volumes:
+            - name: glpi-files
+              nfs:
+                server: 192.0.2.10
+                path: /exports/DEFINIR-NO-OVERLAY
+            - name: glpi-key
+              secret:
+                secretName: glpi-key
+            - name: glpi-config
+              secret:
+                secretName: glpi-config
+            - name: php-config
+              configMap:
+                name: glpi-php-config

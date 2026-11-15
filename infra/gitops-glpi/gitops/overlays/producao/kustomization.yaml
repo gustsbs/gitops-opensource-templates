@@ -1,0 +1,27 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: glpi-prod
+
+resources:
+  - ../../base
+  - ingress.yaml
+  - sealed-config_db.yaml
+  - sealed-glpicrypt.yaml
+  - sealed-oauth.yaml
+
+patches:
+  - target:
+      kind: Deployment
+      name: glpi
+    path: patch-deployment.yaml
+  - target:
+      kind: CronJob
+      name: glpi-cron
+    path: patch-cronjob.yaml
+
+images:
+  - name: registry.exemplo.edu.br/dev/glpi/php-glpi
+    newTag: 11.0.11-v1.0
+  - name: registry.exemplo.edu.br/dev/glpi/nginx-glpi
+    newTag: 1.30.6-v1.0

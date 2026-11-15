@@ -1,0 +1,20 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - glpi-deployment.yaml
+  - glpi-svc.yaml
+  - glpi-cronjob.yaml
+  - glpi-redis.yaml
+  - glpi-cm-php_ini.yaml
+  - glpi-cm-redis.yaml
+  - glpi-cm-nginx-realip.yaml
+
+configMapGenerator:
+  - name: glpi-php-fpm-pool
+    files:
+      - zz-glpi.conf=php-fpm-pool.conf
+
+images:
+  - name: registry.exemplo.edu.br/dev/docker-base-images/redis
+    newTag: 8.8.3-alpine-v1.0

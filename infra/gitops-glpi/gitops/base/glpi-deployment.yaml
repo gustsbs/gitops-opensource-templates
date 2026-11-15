@@ -1,0 +1,155 @@
+# GLPI com imagens separadas: php-glpi (PHP-FPM + codigo) e nginx-glpi.
+# - initContainer copia public/ da php-glpi para um emptyDir lido pelo nginx
+#   (FastCGI so envia o caminho: o index.php e executado no container php).
+# - Pod roda como UID/GID 33, dono dos dados no volume (www-data do Alpine e 82).
+# - Imagens sem tag: a versao de cada ambiente fica no images: do overlay.
+# - O volume glpi-files (indice 0) e o NFS do ambiente: o overlay troca o path.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: glpi
+  labels:
+    app: glpi
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: glpi
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: glpi
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 33
+        runAsGroup: 33
+        fsGroup: 33
+      initContainers:
+        - name: copy-public
+          image: registry.exemplo.edu.br/dev/glpi/php-glpi
+          command: ["sh", "-c", "cp -R /var/www/html/public/. /public/"]
+          resources:
+            requests: {cpu: 50m, memory: 64Mi}
+            limits: {cpu: 500m, memory: 256Mi}
+          volumeMounts:
+            - name: glpi-public
+              mountPath: /public
+      containers:
+        - name: php
+          image: registry.exemplo.edu.br/dev/glpi/php-glpi
+          env:
+            - name: PHP_INI_SCAN_DIR
+              value: :/usr/local/etc/php/conf.custom
+          ports:
+            - name: fastcgi
+              containerPort: 9000
+          readinessProbe:
+            tcpSocket: {port: 9000}
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket: {port: 9000}
+            initialDelaySeconds: 20
+            periodSeconds: 20
+          resources:
+            requests: {cpu: 500m, memory: 1Gi}
+            limits: {cpu: "4", memory: 2Gi}
+          volumeMounts:
+            - name: glpi-files
+              mountPath: /var/www/html/files
+            - name: glpi-cache-config
+              mountPath: /var/www/html/config/local_define.php
+              subPath: local_define.php
+            - name: glpi-config
+              mountPath: /var/www/html/config/config_db.php
+              subPath: config_db.php
+            - name: glpi-key
+              mountPath: /var/www/html/config/glpicrypt.key
+              subPath: glpicrypt.key
+            - name: glpi-oauth
+              mountPath: /var/www/html/config/oauth.pem
+              subPath: oauth.pem
+              readOnly: true
+            - name: glpi-oauth
+              mountPath: /var/www/html/config/oauth.pub
+              subPath: oauth.pub
+              readOnly: true
+            - name: php-config
+              mountPath: /usr/local/etc/php/conf.custom
+            - name: php-fpm-pool
+              mountPath: /usr/local/etc/php-fpm.d/zz-glpi.conf
+              subPath: zz-glpi.conf
+            - name: tmp-php
+              mountPath: /tmp
+        - name: nginx
+          image: registry.exemplo.edu.br/dev/glpi/nginx-glpi
+          securityContext:
+            runAsUser: 101
+            runAsGroup: 101
+          ports:
+            - name: http
+              containerPort: 8080
+          # /healthz responde so o nginx (liveness nao derruba o pod quando o
+          # PHP ou o banco estao lentos); /fpm-ping passa pelo php-fpm.
+          readinessProbe:
+            httpGet: {path: /fpm-ping, port: http}
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: {path: /healthz, port: http}
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          resources:
+            requests: {cpu: 50m, memory: 64Mi}
+            limits: {cpu: "1", memory: 256Mi}
+          volumeMounts:
+            - name: glpi-public
+              mountPath: /var/www/html/public
+              readOnly: true
+            - name: tmp-nginx
+              mountPath: /tmp
+            - name: nginx-cache
+              mountPath: /var/cache/nginx
+            - name: nginx-realip
+              mountPath: /etc/nginx/glpi.d/realip.conf
+              subPath: realip.conf
+              readOnly: true
+      volumes:
+        - name: glpi-files
+          nfs:
+            server: 192.0.2.10
+            path: /exports/DEFINIR-NO-OVERLAY
+        - name: glpi-key
+          secret:
+            secretName: glpi-key
+        - name: glpi-config
+          secret:
+            secretName: glpi-config
+        - name: glpi-oauth
+          secret:
+            secretName: glpi-oauth
+            defaultMode: 0440
+        - name: php-config
+          configMap:
+            name: glpi-php-config
+        - name: php-fpm-pool
+          configMap:
+            name: glpi-php-fpm-pool
+        - name: glpi-cache-config
+          configMap:
+            name: glpi-cache
+        - name: nginx-realip
+          configMap:
+            name: glpi-nginx-realip
+        - name: glpi-public
+          emptyDir: {}
+        - name: tmp-php
+          emptyDir: {}
+        - name: tmp-nginx
+          emptyDir: {}
+        - name: nginx-cache
+          emptyDir: {}

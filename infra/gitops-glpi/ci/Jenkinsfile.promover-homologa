@@ -1,0 +1,116 @@
+// Promove para a homologacao a candidata que esta no overlay de teste.
+// Sem rebuild: a imagem candidata ganha a tag de versao (mesmo digest) e um MR
+// troca o newTag em overlays/homologa. O merge e humano.
+pipeline {
+    agent {
+        kubernetes {
+            yaml '''
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app: jenkins-glpi-promocao
+spec:
+  containers:
+  - name: skopeo
+    image: quay.io/skopeo/stable:v1.16.1
+    command: ["sleep"]
+    args: ["infinity"]
+    env:
+    - name: REGISTRY_AUTH_FILE
+      value: /docker/config.json
+    volumeMounts:
+    - name: registry-secret
+      mountPath: /docker
+      readOnly: true
+  - name: git-kustomize
+    image: alpine/k8s:1.30.0
+    command: ["sleep"]
+    args: ["infinity"]
+  volumes:
+  - name: registry-secret
+    projected:
+      sources:
+      - secret:
+          name: regcred
+          items:
+          - key: .dockerconfigjson
+            path: config.json
+'''
+        }
+    }
+
+    options {
+        disableConcurrentBuilds()
+        buildDiscarder(logRotator(numToKeepStr: '30'))
+    }
+
+    environment {
+        REGISTRY    = 'registry.exemplo.edu.br/dev/glpi'
+        GITOPS_REPO = 'git.exemplo.edu.br/infra/gitops-glpi.git'
+        ORIGEM      = 'gitops/overlays/teste'
+        DESTINO     = 'gitops/overlays/homologa'
+    }
+
+    stages {
+        stage('1. Validar parametros') {
+            steps {
+                script {
+                    def versao = /^[0-9]+\.[0-9]+\.[0-9]+-v[0-9]+\.[0-9]+$/
+                    if (!(params.VERSAO_PHP ==~ versao)) {
+                        error("VERSAO_PHP '${params.VERSAO_PHP}' invalida: use <versao do GLPI>-v<X.Y> (ex.: 11.0.11-v1.1)")
+                    }
+                    if (params.VERSAO_NGINX?.trim() && !(params.VERSAO_NGINX ==~ versao)) {
+                        error("VERSAO_NGINX '${params.VERSAO_NGINX}' invalida: use <versao do nginx>-v<X.Y> (ex.: 1.30.6-v1.3)")
+                    }
+                }
+            }
+        }
+
+        stage('2. Ler as candidatas do teste') {
+            steps {
+                container('git-kustomize') {
+                    script {
+                        env.PHP_CANDIDATA   = sh(returnStdout: true, script: 'sh ci/tag-do-overlay.sh "$ORIGEM" "$REGISTRY/php-glpi"').trim()
+                        env.NGINX_CANDIDATA = sh(returnStdout: true, script: 'sh ci/tag-do-overlay.sh "$ORIGEM" "$REGISTRY/nginx-glpi"').trim()
+                        echo "Teste: php-glpi:${env.PHP_CANDIDATA}  nginx-glpi:${env.NGINX_CANDIDATA}"
+                    }
+                }
+            }
+        }
+
+        stage('3. Publicar a versao (sem rebuild)') {
+            steps {
+                container('skopeo') {
+                    sh 'sh ci/publicar-versao.sh "$REGISTRY/php-glpi" "$PHP_CANDIDATA" "$VERSAO_PHP"'
+                    script {
+                        if (params.VERSAO_NGINX?.trim()) {
+                            sh 'sh ci/publicar-versao.sh "$REGISTRY/nginx-glpi" "$NGINX_CANDIDATA" "$VERSAO_NGINX"'
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('4. Abrir MR na homologacao') {
+            steps {
+                container('git-kustomize') {
+                    withCredentials([usernamePassword(credentialsId: 'gitops-glpi-token', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_PASS')]) {
+                        script {
+                            def refs = ["${env.REGISTRY}/php-glpi:${params.VERSAO_PHP}"]
+                            def desc = "php-glpi ${params.VERSAO_PHP} (candidata ${env.PHP_CANDIDATA} do teste; digest ${readFile('.promocao/php-glpi.digest')}; commit ${readFile('.promocao/php-glpi.revisao')})"
+                            if (params.VERSAO_NGINX?.trim()) {
+                                refs << "${env.REGISTRY}/nginx-glpi:${params.VERSAO_NGINX}"
+                                desc += "; nginx-glpi ${params.VERSAO_NGINX} (candidata ${env.NGINX_CANDIDATA}; digest ${readFile('.promocao/nginx-glpi.digest')})"
+                            }
+                            withEnv(["DESCRICAO=${desc}. Promovido pelo Jenkins; merge humano."]) {
+                                sh "sh ci/abrir-mr.sh \"${env.DESTINO}\" homologa ${refs.collect { "'" + it + "'" }.join(' ')}"
+                            }
+                            currentBuild.description = "php-glpi:${params.VERSAO_PHP}" + (params.VERSAO_NGINX?.trim() ? " nginx-glpi:${params.VERSAO_NGINX}" : '')
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

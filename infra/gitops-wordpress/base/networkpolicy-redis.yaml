@@ -1,0 +1,20 @@
+# O redis roda sem senha (protected-mode no): o isolamento e esta policy.
+# So os pods do wordpress do mesmo namespace falam com ele, na 6379.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: redis
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: redis
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: wordpress
+      ports:
+        - protocol: TCP
+          port: 6379

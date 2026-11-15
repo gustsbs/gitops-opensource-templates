@@ -1,0 +1,6 @@
+# Segredos em texto puro (fonte para o kubeseal): nunca commitar
+config_db.php
+glpicrypt.key
+*.pem
+*.key
+.env

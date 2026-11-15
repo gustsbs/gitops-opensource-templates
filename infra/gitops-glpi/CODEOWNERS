@@ -1,0 +1,6 @@
+# Uma unica branch (main); ambientes separados por diretorio, nao por branch.
+# A equipe dev abre e mescla MRs em teste e homologacao livremente.
+# Producao exige aprovacao de um mantenedor da equipe infra.
+# (Ative "Require approval from code owners" na protecao da main.)
+
+/gitops/overlays/producao/** @infra

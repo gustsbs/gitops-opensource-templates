@@ -1,0 +1,21 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: glpi-teste
+  namespace: argocd
+spec:
+  project: glpi
+  source:
+    repoURL: https://git.exemplo.edu.br/infra/gitops-glpi.git
+    targetRevision: main
+    path: gitops/overlays/teste
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: glpi-teste
+  syncPolicy:
+    # Teste: sincronizacao automatica a cada commit do CI.
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
