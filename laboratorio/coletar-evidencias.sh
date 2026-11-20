@@ -179,7 +179,7 @@ if [ "$DRIFT" -eq 1 ]; then
   drift D4 "Ingress do WordPress apagado" \
     "$K -n wp-lab delete ingress wordpress" \
     "$K -n wp-lab get ingress wordpress" \
-    "curl -s -o /dev/null --max-time 5 --resolve site.lab.localhost:80:$ip http://site.lab.localhost/"
+    "curl -s -o /dev/null -w '%{http_code}' --max-time 5 --resolve site.lab.localhost:80:$ip http://site.lab.localhost/ | grep -qE '^(200|302)$'"
 
   drift D5 "NetworkPolicy do Redis do WordPress apagada" \
     "$K -n wp-lab delete networkpolicy redis" \
