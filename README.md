@@ -1,5 +1,8 @@
 # GitOps Open Source Templates
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.24407741.svg)](https://doi.org/10.5281/zenodo.24407741)
+[![Licença: Apache-2.0](https://img.shields.io/badge/licen%C3%A7a-Apache--2.0-blue.svg)](LICENSE)
+
 Templates de uma **arquitetura modular de Infraestrutura como Código** para
 operar sistemas de código aberto via GitOps em Kubernetes on-premises.
 Os estudos de caso são o **GLPI** (central de serviços) e o **WordPress**
@@ -113,8 +116,17 @@ shellcheck a cada push e pull request.
 
 ## Como citar
 
-Use o botão **"Cite this repository"** do GitHub (gerado a partir do
-[`CITATION.cff`](CITATION.cff)).
+Versão 1.0.0 arquivada no Zenodo: [doi.org/10.5281/zenodo.24407741](https://doi.org/10.5281/zenodo.24407741).
+
+ABNT:
+
+> SANTOS, Gustavo Starepravo de Brito dos. **GitOps Open Source Templates**:
+> arquitetura modular de Infraestrutura como Código para GLPI e WordPress.
+> Versão 1.0.0. [*S. l.*]: Zenodo, 2026. Software. DOI: 10.5281/zenodo.24407741.
+> Disponível em: https://doi.org/10.5281/zenodo.24407741.
+
+Outros formatos (APA, BibTeX): botão **"Cite this repository"** do GitHub,
+gerado a partir do [`CITATION.cff`](CITATION.cff).
 
 ## Licença
 

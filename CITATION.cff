@@ -4,9 +4,15 @@ title: "GitOps Open Source Templates: arquitetura modular de Infraestrutura como
 type: software
 version: 1.0.0
 date-released: "2026-11-20"
+doi: 10.5281/zenodo.24407741
+identifiers:
+  - type: doi
+    value: 10.5281/zenodo.24407741
+    description: Versão 1.0.0 arquivada no Zenodo
 authors:
-  - given-names: Gustavo
-    family-names: Starepravo de Brito dos Santos
+  - given-names: Gustavo Starepravo de Brito
+    name-particle: dos
+    family-names: Santos
     affiliation: "Universidade Tecnológica Federal do Paraná (PPGCA/UTFPR)"
 license: Apache-2.0
 repository-code: "https://github.com/gustsbs/gitops-opensource-templates"
