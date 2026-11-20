@@ -2,6 +2,8 @@ cff-version: 1.2.0
 message: "Se usar estes templates, cite-os conforme os metadados abaixo."
 title: "GitOps Open Source Templates: arquitetura modular de Infraestrutura como Código para GLPI e WordPress"
 type: software
+version: 1.0.0
+date-released: "2026-11-20"
 authors:
   - given-names: Gustavo
     family-names: Starepravo de Brito dos Santos
