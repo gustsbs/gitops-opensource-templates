@@ -73,3 +73,25 @@ nomes). O GLPI usa HTTPS porque o template marca o cookie de sessão como
 
 Para testar o *drift*: altere algo à mão (`microk8s kubectl -n glpi-lab
 scale deploy glpi --replicas=0`) e veja o Argo CD desfazer a mudança.
+
+## Evidências para a validação
+
+Com o laboratório aplicado pelo Argo CD (etapa `argocd`):
+
+```bash
+laboratorio/coletar-evidencias.sh
+```
+
+Gera em `~/evidencias-gitops-lab/<data-hora>/` um `relatorio.md` com:
+
+1. estado das Applications (revisão do Git sincronizada, sync, saúde e política);
+2. recursos em execução, com imagem e digest de cada contêiner;
+3. SealedSecrets e os Secrets abertos pelo controller;
+4. resposta HTTP pelo ingress;
+5. testes de *drift* cronometrados: alterações feitas direto no cluster
+   (réplicas, ConfigMap, Service, Ingress, NetworkPolicy) e o tempo até o
+   Argo CD restaurar o estado declarado no Git.
+
+Os arquivos brutos (YAML das Applications, histórico de sincronização,
+estado antes e depois de cada teste) ficam ao lado do relatório.
+`--sem-drift` coleta só o estado, sem alterar nada.
